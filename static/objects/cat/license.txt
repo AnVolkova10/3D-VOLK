@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cat IS2
+* source:	https://sketchfab.com/3d-models/cat-is2-670791315b634cb0b1f59cbfe7cff3e4
+* author:	the Show Orange (https://sketchfab.com/orangetheshow)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cat IS2" (https://sketchfab.com/3d-models/cat-is2-670791315b634cb0b1f59cbfe7cff3e4) by the Show Orange (https://sketchfab.com/orangetheshow) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

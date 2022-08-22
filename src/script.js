@@ -1,244 +1,209 @@
 import './style.css'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import * as dat from 'dat.gui'
+import * as THREE from 'three';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
+import * as dat from 'dat.gui';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// Loading
-const textureLoader = new THREE.TextureLoader()
-const normalTexture = textureLoader.load('/textures/normalMap.png')
 
-// Debug
-const gui = new dat.GUI()
+// //////////////////////// LOADERS
+const loader = new THREE.TextureLoader()
+const texture = loader.load('/textures/wireframe2.jpg')
+const height = loader.load('/textures/height.png')
+const alpha = loader.load('/textures/alpha.jpg')
 
-// Canvas
-const canvas = document.querySelector('canvas.webgl')
+const gltfloader = new GLTFLoader();
 
-// Scene
-const scene = new THREE.Scene()
 
-// OBJ1 ////////////////////////////////////////////////////
-const geometry = new THREE.SphereBufferGeometry( .5, 64, 64 );
+// /////////////////////// RENDERER
+const renderer = new THREE.WebGLRenderer();
 
-// Materials
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+renderer.shadowMap.enabled = true;
 
-const material = new THREE.MeshStandardMaterial()
-material.metalness = 0.7
-material.roughness = 0.2
-material.normalMap = normalTexture;
-material.color = new THREE.Color(0x292929)
+// ////////////////////// SCENE
+const scene = new THREE.Scene();
 
-// Mesh
-const sphere = new THREE.Mesh(geometry,material)
-scene.add(sphere)
+// ///////////////////// CAMERA
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera.position.set(0, 5, 10);
 
-// OBJ2 //////////////////////////////////////////////
+// //////////////////// CONTROLS
+const orbit = new OrbitControls(camera, renderer.domElement);
 
-const geometry2 = new THREE.PlaneBufferGeometry(3,3,64,64)
-const material2 = new THREE.MeshStandardMaterial()
-material2.metalness = 1
-material2.roughness = 1
-material2.color = new THREE.Color(0xffffff)
-const plane = new THREE.Mesh(geometry2,material2)
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
+orbit.update();
+
+
+// /////////////////// OBJECTS
+// Plane
+const planeGeometry = new THREE.PlaneBufferGeometry(19, 15, 64, 64)
+const planeMaterial = new THREE.MeshStandardMaterial({
+    color: 'gray',
+    map: texture,
+    displacementMap: height,
+    displacementScale: .5,
+    alphaMap: alpha,
+    transparent: true,
+    depthTest: true,
+    side: THREE.DoubleSide
+})
+const plane = new THREE.Mesh(planeGeometry, planeMaterial)
 scene.add(plane)
+plane.rotation.x = -0.5 * Math.PI
+plane.receiveShadow = true;
 
-plane.rotation.x = 181
+// Genosha Logo
+const geometryGenoshaLogo = new THREE.PlaneBufferGeometry(5, 1)
+const materialGenoshaLogo = new THREE.MeshBasicMaterial({
+    map: loader.load('/images/genosha-logo.png'),
+    transparent: true
+})
+const genoshaLogo = new THREE.Mesh(geometryGenoshaLogo, materialGenoshaLogo)
+genoshaLogo.position.y = 2
+genoshaLogo.position.z = -12
+const genoshaLogoId = genoshaLogo.id
+scene.add(genoshaLogo)
 
-const planeGUI = gui.addFolder('Plane');
-planeGUI.add(plane, 'visible')
-planeGUI.add(plane.rotation, 'x').min(-3).max(3).step(0.00001)
-planeGUI.add(plane.rotation, 'y').min(-3).max(3).step(0.00001)
-planeGUI.add(plane.position, 'x').min(-3).max(3).step(0.00001)
-planeGUI.add(plane.position, 'y').min(-3).max(3).step(0.00001)
+// Cat
+let cat;
+gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
+    scene.add( gltf.scene );
+    cat = gltf.scene;
+    
+    cat.position.x= -5
+    cat.position.y= 1.1
+    cat.position.z= 2
+    cat.rotation.y = 0.5 * Math.PI
 
-// Lights
+}, undefined, function ( error ) {
+    console.error( error );
+} );
 
-//LIGHT 1
-const pointLight = new THREE.AmbientLight(0xffffff, 0.1)
-pointLight.position.x = 2
-pointLight.position.y = 3
-pointLight.position.z = 4
-scene.add(pointLight)
+// TOTEM
+let totem;
+gltfloader.load( 'objects/totem/scene.gltf', function ( gltf ) {
+   scene.add( gltf.scene );
+   totem = gltf.scene;
+   
+   
+   totem.position.x = 5
+   totem.position.y = 0.2
+   totem.position.z = 0
+   totem.rotation.y = -0.3 * Math.PI
+   
+      
+}, undefined, function ( error ) {
+    console.error( error );
+} );
 
-const light = gui.addFolder('Light 1 - AmbientLight')
+// ////////////////// LIGHTS
+// Ambient Light
+const ambientLight = new THREE.AmbientLight(0xffffff);
+scene.add(ambientLight);
 
-light.add(pointLight, 'visible')
-light.add(pointLight, 'castShadow')
-light.add(pointLight.position, 'y').min(-3).max(3).step(0.01)
-light.add(pointLight.position, 'x').min(-6).max(10).step(0.01)
-light.add(pointLight.position, 'z').min(-3).max(3).step(0.01)
-light.add(pointLight, 'intensity').min(0).max(10).step(0.01)
+// Directional Light
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+scene.add(directionalLight);
+directionalLight.position.set(-30, 50, 0);
+directionalLight.castShadow = true;
 
-const pointLightHelper0 = new THREE.PointLightHelper(pointLight, 1)
-scene.add(pointLightHelper0)
+const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+scene.add(dLightHelper);
 
-// LIGHT 2 - RED
-const pointLight2 = new THREE.PointLight(0xff0000, 2)
-pointLight2.position.set(1,1,1)
-pointLight2.intensity = 1
-scene.add(pointLight2)
+//  const dLightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+//  scene.add(dLightShadowHelper);
 
-const light2 = gui.addFolder('Light 2 - PointLight')
+// const spotLight = new THREE.SpotLight(0xFFFFFF);
+// scene.add(spotLight);
+// spotLight.position.set(-10, 10, 0);
+// spotLight.castShadow = true;
+// spotLight.angle = 0.2;
 
-light2.add(pointLight2, 'visible')
-light2.add(pointLight2, 'castShadow')
-light2.add(pointLight2.position, 'y').min(-3).max(3).step(0.01)
-light2.add(pointLight2.position, 'x').min(-6).max(10).step(0.01)
-light2.add(pointLight2.position, 'z').min(-3).max(3).step(0.01)
-light2.add(pointLight2, 'intensity').min(0).max(10).step(0.01)
+// const sLightHelper = new THREE.SpotLightHelper(spotLight);
+// scene.add(sLightHelper);
 
-const pointLightHelper = new THREE.AmbientLightProbe(pointLight2, 1)
-scene.add(pointLightHelper)
+// ////////////////// FOG
+// scene.fog = new THREE.Fog(0XFFFFFF, 0, 200)
+// scene.fog = new THREE.FogExp2(0XFFFFFF, .01)
 
-// LIGHT 3 - BLUE
-const pointLight3 = new THREE.HemisphereLight(0xff0000,0x00ff00, 2)
-pointLight3.position.set(-3,1,1)
-pointLight3.intensity = 1
-scene.add(pointLight3)
+// ///////////////// SKYBOX
+const skyboxLoader = new THREE.CubeTextureLoader();
+const skybox = skyboxLoader.load([
+    '/textures/right.png',
+        '/textures/left.png',
+        '/textures/top.png',
+        '/textures/bottom.png',
+        '/textures/front.png',
+        '/textures/back.png',
+    ]);
+    scene.background = skybox;
+    
+// ///////////////// GUI
+const gui = new dat.GUI();
 
-const light3 = gui.addFolder('Light 3 - HemisphereLight')
-
-light3.add(pointLight3, 'visible')
-light3.add(pointLight3, 'castShadow')
-light3.add(pointLight3.position, 'y').min(-3).max(3).step(0.01)
-light3.add(pointLight3.position, 'x').min(-6).max(10).step(0.01)
-light3.add(pointLight3.position, 'z').min(-3).max(3).step(0.01)
-light3.add(pointLight3, 'intensity').min(0).max(10).step(0.01)
-
-const pointLightHelper2 = new THREE.HemisphereLightHelper(pointLight3, 1)
-scene.add(pointLightHelper2)
-
-// LIGHT 4 
-
-const pointLight4 = new THREE.RectAreaLight(0xe600ad, 2,2 ,20)
-pointLight4.position.set(-0.11,-3,-2.11)
-pointLight4.intensity = 4.9
-scene.add(pointLight4)
-
-const light4 = gui.addFolder('Light 4 - ReactAreaLight')
-
-light3.add(pointLight4, 'visible')
-light3.add(pointLight4, 'castShadow')
-light4.add(pointLight4.position, 'y').min(-3).max(3).step(0.01)
-light4.add(pointLight4.position, 'x').min(-6).max(10).step(0.01)
-light4.add(pointLight4.position, 'z').min(-3).max(3).step(0.01)
-light4.add(pointLight4, 'intensity').min(0).max(10).step(0.01)
-
-const light4Color = {
-    color: 0xe600ad
+const options = {
+    planeColor: '#ffffff',
+    wireframe: false
 }
 
-light4.addColor(light4Color, 'color')
-    .onChange(()=> {
-        pointLight4.color.set(light4Color.color)
-    })
+gui.addColor(options, 'planeColor').onChange(function(e){
+    plane.material.color.set(e)
+} )
 
-const pointLightHelper3 = new THREE.PointLightHelper(pointLight4, .5)
-scene.add(pointLightHelper3)
+gui.add(options, 'wireframe').onChange(function(e){
+    plane.material.wireframe = e
+} )
 
-/**
- * Sizes
- */
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
+// ////////////////// RAYCASTER
+const mousePosition = new THREE.Vector2();
 
-window.addEventListener('resize', () =>
-{
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
+window.addEventListener('mousemove', function(e) {
+    mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mousePosition.y = - (e.clientY / window.innerHeight) * 2 + 1;
+});
 
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
+const rayCaster = new THREE.Raycaster();
 
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+let objs = []
+scene.traverse((object)=> {
+    if (object.isMesh)
+        objs.push(object)
 })
 
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 0
-camera.position.y = 0
-camera.position.z = 2
-scene.add(camera)
 
-// Controls
-// const controls = new OrbitControls(camera, canvas)
-// controls.enableDamping = true
+// ///////////////// ANIMATE
+function animate(){
+    // Raycasting
+    rayCaster.setFromCamera(mousePosition,camera)
+    const intersects = rayCaster.intersectObjects(objs)
+     
+    // mouse in
+     for(const intersect of intersects){
+        if (intersect.object.id === genoshaLogoId)
+        intersect.object.scale.set(1.1,1.1)
+    }
 
-/**
- * Renderer
- */
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    alpha: true
+    // mouse out
+    for (const object of objs) {
+        if (!intersects.find(intersect=> intersect.object === object) && object.id === genoshaLogoId) {
+            object.scale.set(1,1)  
+        }
+    }
 
-})
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-/**
- * Animate
- */
-
-
-// MOUSE
-document.addEventListener('mousemove', onDocumentMouseMove);
-
-let mouseX = 0;
-let mouseY = 0;
-
-let targetX = 0;
-let targetY = 0;
-
-const windowHalfX = window.innerWidth / 2;
-const windowHalfY = window.innerHeight / 2;
-
-function onDocumentMouseMove (e) {
-    mouseX = (e.clientX - windowHalfX);
-    mouseY = (e.clientY - windowHalfY);
+    renderer.render(scene, camera);
 }
 
+renderer.setAnimationLoop(animate)
 
-// SCROLL
-
-const scrollSphere = (event) => {
-    sphere.position.y = window.scrollY * -.001
-}
-window.addEventListener('scroll', scrollSphere);
-
-
-
-const clock = new THREE.Clock()
-
-const tick = () =>
-{
-
-    targetX = mouseX * .001
-    targetY = mouseY * .001
-    const elapsedTime = clock.getElapsedTime()
-
-    // Update objects
-    sphere.rotation.y = .5 * elapsedTime
-
-    sphere.rotation.y += .45 * (targetX - sphere.rotation.y)
-    sphere.rotation.x += .05 * (targetY - sphere.rotation.x)
-    sphere.position.z += -.05 * (targetY - sphere.rotation.x)
-
-    // Update Orbital Controls
-    // controls.update()
-
-    // Render
-    renderer.render(scene, camera)
-
-    // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
-}
-
-tick()
+window.addEventListener('resize', function() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
