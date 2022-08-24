@@ -24,3 +24,47 @@ body
 .section {
     height: 50vh;
 }
+
+.cta {
+    opacity: 0;
+    position:fixed;
+    top: 630px;
+    left: 1480px;
+    cursor: pointer;
+    background-color: #F10262;
+    color: white;
+    padding: 8px 24px;
+    gap: 8px;
+    border-radius: 24px;
+    z-index: 9;
+    border: none;
+    transition: all 2s;
+}
+
+.description {
+    opacity: 0;
+    position: fixed;
+    left: 1200px;
+    top: 200px;
+    background-color: #D9D9D9;
+    z-index: 9;
+    font-family: 'Poppins', sans-serif;
+    border-radius: 10px;
+    padding: 10px;
+    transition: all 2s;
+}
+
+.ver {
+    color: #F10262;
+    font-family: 'Poppins', sans-serif;
+    padding: 4px 14px;
+    gap: 8px;
+    border-radius: 24px;
+    border-color: #F10262;
+    margin-left: 130px;
+    cursor: pointer;
+}
+
+h2 {
+    color: #F10262;
+}

@@ -4,6 +4,7 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import * as dat from 'dat.gui';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { gsap } from "gsap";
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 
 // //////////////////////// LOADERS
@@ -15,6 +16,12 @@ const alpha = loader.load('/textures/alpha.jpg')
 const gltfloader = new GLTFLoader();
 
 const canvas = document.querySelector('canvas.webgl')
+
+const cta = document.querySelector('.cta')
+
+window.onbeforeunload = function () {
+    window.scrollTo(0, 0);
+  }
 
 // /////////////////////// RENDERER
 const renderer = new THREE.WebGLRenderer({
@@ -37,7 +44,6 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 camera.position.set(0, 15, 0);
-
 
 // //////////////////// CONTROLS
 const orbit = new OrbitControls(camera, canvas);
@@ -79,16 +85,48 @@ scene.add(genoshaLogo)
 
 // Cat
 let cat;
-let catMixer;
+let catMixerSmell;
+let catMixerAtoB;
+let catMixerBIdle;
+let catMixerBtoA;
+let catMixerWalk;
 gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     scene.add( gltf.scene );
     cat = gltf.scene;
-
-    catMixer = new THREE.AnimationMixer(cat)
+    
     const clips = gltf.animations
-    const clip = THREE.AnimationClip.findByName(clips, 'A_smell')
-    const action = catMixer.clipAction(clip)
-    action.play()
+    
+    catMixerSmell = new THREE.AnimationMixer(cat)
+    const clipSmell = THREE.AnimationClip.findByName(clips, 'A_smell')
+    const actionSmell = catMixerSmell.clipAction(clipSmell)
+    actionSmell.play()
+    catMixerWalk = new THREE.AnimationMixer(cat)
+    const clipWalk = THREE.AnimationClip.findByName(clips, 'A_walk')
+    const actionWalk = catMixerWalk.clipAction(clipWalk)
+    actionWalk.play()
+
+    catMixerAtoB = new THREE.AnimationMixer(cat)
+    const clipAtoB = THREE.AnimationClip.findByName(clips, 'AtoB')
+    const actionAtoB = catMixerAtoB.clipAction(clipAtoB)
+    actionAtoB.reset();
+    actionAtoB.clampWhenFinished = true;
+    actionAtoB.timeScale = 1;
+    actionAtoB.setLoop(THREE.LoopOnce, 1);
+    actionAtoB.play();
+    
+    catMixerBtoA = new THREE.AnimationMixer(cat)
+    const clipBtoA = THREE.AnimationClip.findByName(clips, 'BtoA')
+    const actionBtoA = catMixerBtoA.clipAction(clipBtoA)
+    actionBtoA.reset();
+    actionBtoA.clampWhenFinished = true;
+    actionBtoA.timeScale = 1;
+    actionBtoA.setLoop(THREE.LoopOnce, 1);
+    actionBtoA.play();
+    
+    catMixerBIdle = new THREE.AnimationMixer(cat)
+    const clipBIdle = THREE.AnimationClip.findByName(clips, 'B_idle')
+    const actionBIdle = catMixerBIdle.clipAction(clipBIdle)
+    actionBIdle.play()
 
     cat.position.x= -7
     cat.position.y= 1.1
@@ -101,6 +139,39 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
         object.castShadow = true
     })
 
+    gsap.from(cat.position, {
+        duration: 1,
+        ease: 'expo',
+    })
+    gsap.from('h1', {
+        yPercent: 100,
+        autoAlpha: 0,
+        ease: 'back',
+        delay: 0.3,
+    })
+    gsap.to(cat.position, {
+        x: -6.99,
+        scrollTrigger: {
+            trigger: sections[2],
+        },
+    })
+    gsap.to(cat, {
+        scrollTrigger: {
+            trigger: sections[2],
+        },
+        onUpdate: function() {
+            cta.style.opacity = '100%';
+            document.querySelector('.description').style.opacity = '100%';
+        }
+    })
+
+    const catGUI = gui.addFolder('Cat');
+    catGUI.add(cat, 'visible')
+    catGUI.add(cat.position, 'x').min(-13).max(13).step(0.00001)
+    catGUI.add(cat.position, 'y').min(-13).max(13).step(0.00001)
+    catGUI.add(cat.position, 'z').min(-13).max(13).step(0.00001)
+    catGUI.add(cat.rotation, 'x').min(-13).max(13).step(0.00001)
+    catGUI.add(cat.rotation, 'y').min(-13).max(13).step(0.00001)
 
 }, undefined, function ( error ) {
     console.error( error );
@@ -275,12 +346,8 @@ scene.traverse((object)=> {
 
 // ////////////////////// GSAP
 let tl = gsap.timeline()
-
-// gsap.registerPlugin(ScrollTrigger)
-//    ScrollTrigger.defaults({
-//    scrub: 2,
-//    ease: 'none',
-// })
+let tlBox = gsap.timeline({paused:true, repeat:1})
+let tlBox2 = gsap.timeline({paused:true, repeat:1})
 
 tl.to(camera.position, {duration:2})
 tl.to(camera.position, {
@@ -288,12 +355,17 @@ tl.to(camera.position, {
     z: 10, 
     duration: 3,
     onUpdate: function() {
-		camera.lookAt( 0,0,0 );
+        camera.lookAt( 0,0,0 );
 	}
 })
 
+gsap.registerPlugin(ScrollTrigger)
+   ScrollTrigger.defaults({
+   scrub: 2,
+   ease: 'none',
+})
 
-// const sections = document.querySelectorAll('.section')
+const sections = document.querySelectorAll('.section')
 
 // ///////////////// ANIMATE
 const clock = new THREE.Clock()
@@ -316,8 +388,51 @@ function animate(){
         }
     }
 
-    if (catMixer)
-    catMixer.update(clock.getDelta())
+    if (catMixerSmell && cat.position.x <= -7) {
+        catMixerSmell.update(clock.getDelta())    
+    } else if (catMixerAtoB && cat.position.x > -7) {
+        tl.to(cat, {
+            duration: 1.3,
+            onUpdate: function() {
+                catMixerAtoB.update(clock.getDelta())    
+            }
+        })
+        tl.to(cat, {
+            duration: Infinity,
+            onUpdate: function() {
+                catMixerBIdle.update(clock.getDelta())    
+            }
+        })
+    }
+    
+    cta.addEventListener('click',function() {
+        tlBox.play()
+        tlBox2.play()
+    });
+
+    if(cat){
+        tlBox.to(cat, {
+            duration: 1.3,
+            onUpdate: function() {
+                catMixerBIdle.stopAllAction()
+                catMixerBtoA.update(clock.getDelta())    
+            }
+        })
+        
+        tlBox.to(
+            cat.position, {
+            duration: 3,
+            x: 3,
+            z: 4.3,
+            onUpdate: function() {
+                catMixerWalk.update(clock.getDelta())    
+            }
+        })
+        tlBox2.to(cat.rotation, {
+            duration:5,
+            y: 1.5,
+        })
+    }
     
     renderer.render(scene, camera);
 }
