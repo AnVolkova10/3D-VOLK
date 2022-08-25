@@ -5,11 +5,12 @@ import * as dat from 'dat.gui';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { gsap } from "gsap";
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+// import { throttle } from 'throttle-debounce';
 
 
 // //////////////////////// LOADERS
 const loader = new THREE.TextureLoader()
-const texture = loader.load('/textures/wireframe2.jpg')
+const texture = loader.load('/textures/wireframe.png')
 const height = loader.load('/textures/height.png')
 const alpha = loader.load('/textures/alpha.jpg')
 
@@ -54,7 +55,7 @@ orbit.update();
 
 // /////////////////// OBJECTS
 // Plane
-const planeGeometry = new THREE.PlaneBufferGeometry(30, 15, 64, 64)
+const planeGeometry = new THREE.PlaneBufferGeometry(50, 70, 64, 64)
 const planeMaterial = new THREE.MeshStandardMaterial({
     color: 'gray',
     map: texture,
@@ -77,9 +78,9 @@ const materialGenoshaLogo = new THREE.MeshBasicMaterial({
     transparent: true
 })
 const genoshaLogo = new THREE.Mesh(geometryGenoshaLogo, materialGenoshaLogo)
-genoshaLogo.position.x = -3
+genoshaLogo.position.x = -7
 genoshaLogo.position.y = 2
-genoshaLogo.position.z = -12
+genoshaLogo.position.z = 0
 const genoshaLogoId = genoshaLogo.id
 scene.add(genoshaLogo)
 
@@ -90,6 +91,13 @@ let catMixerAtoB;
 let catMixerBIdle;
 let catMixerBtoA;
 let catMixerWalk;
+let catMixerWash;
+let catMixerWash2;
+let catMixerPicks;
+let catMixerJumpS;
+let catMixerJumpL;
+let catMixerJumpE;
+let catMixerAIdle;
 gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     scene.add( gltf.scene );
     cat = gltf.scene;
@@ -100,6 +108,50 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     const clipSmell = THREE.AnimationClip.findByName(clips, 'A_smell')
     const actionSmell = catMixerSmell.clipAction(clipSmell)
     actionSmell.play()
+    
+    catMixerJumpS = new THREE.AnimationMixer(cat)
+    const clipJumpS = THREE.AnimationClip.findByName(clips, 'A_jump_start')
+    const actionJumpS = catMixerJumpS.clipAction(clipJumpS)
+    actionJumpS.reset();
+    actionJumpS.clampWhenFinished = true;
+    actionJumpS.timeScale = 1;
+    actionJumpS.setLoop(THREE.LoopOnce, 1);
+    actionJumpS.play();
+    
+    catMixerJumpL = new THREE.AnimationMixer(cat)
+    const clipJumpL = THREE.AnimationClip.findByName(clips, 'A_jump_loop')
+    const actionJumpL = catMixerJumpL.clipAction(clipJumpL)
+    actionJumpL.play()
+    
+    catMixerJumpE = new THREE.AnimationMixer(cat)
+    const clipJumpE = THREE.AnimationClip.findByName(clips, 'A_jump_end')
+    const actionJumpE = catMixerJumpE.clipAction(clipJumpE)
+    actionJumpE.reset();
+    actionJumpE.clampWhenFinished = true;
+    actionJumpE.timeScale = 1;
+    actionJumpE.setLoop(THREE.LoopOnce, 1);
+    actionJumpE.play()
+
+    
+    catMixerWash = new THREE.AnimationMixer(cat)
+    const clipWash = THREE.AnimationClip.findByName(clips, 'B_wash')
+    const actionWash = catMixerWash.clipAction(clipWash)
+    actionWash.play()
+    
+    catMixerWash2 = new THREE.AnimationMixer(cat)
+    const clipWash2 = THREE.AnimationClip.findByName(clips, 'B_wash_b')
+    const actionWash2 = catMixerWash2.clipAction(clipWash2)
+    actionWash2.play()
+
+    
+    
+    catMixerPicks = new THREE.AnimationMixer(cat)
+    const clipPicks = THREE.AnimationClip.findByName(clips, 'B_picks')
+    const actionPicks = catMixerPicks.clipAction(clipPicks)
+    actionPicks.play()
+
+    
+
     catMixerWalk = new THREE.AnimationMixer(cat)
     const clipWalk = THREE.AnimationClip.findByName(clips, 'A_walk')
     const actionWalk = catMixerWalk.clipAction(clipWalk)
@@ -127,6 +179,11 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     const clipBIdle = THREE.AnimationClip.findByName(clips, 'B_idle')
     const actionBIdle = catMixerBIdle.clipAction(clipBIdle)
     actionBIdle.play()
+    
+    catMixerAIdle = new THREE.AnimationMixer(cat)
+    const clipAIdle = THREE.AnimationClip.findByName(clips, 'A_idle')
+    const actionAIdle = catMixerAIdle.clipAction(clipAIdle)
+    actionAIdle.play()
 
     cat.position.x= -7
     cat.position.y= 1.1
@@ -165,6 +222,7 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
         }
     })
 
+
     const catGUI = gui.addFolder('Cat');
     catGUI.add(cat, 'visible')
     catGUI.add(cat.position, 'x').min(-13).max(13).step(0.00001)
@@ -176,6 +234,16 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
 }, undefined, function ( error ) {
     console.error( error );
 } );
+
+// let idleCat = throttle(5000, function () {
+//     if (cat) {
+//     const idleArray =[
+//         catMixerWash.update(clock.getDelta()) ,
+//         catMixerWash2.update(clock.getDelta()) ,
+//         catMixerPicks.update(clock.getDelta()) 
+//     ]
+//     return idleArray[Math.floor(Math.random() * 3)];} 
+// });
 
 // TOTEM
 let totem;
@@ -348,6 +416,7 @@ scene.traverse((object)=> {
 let tl = gsap.timeline()
 let tlBox = gsap.timeline({paused:true, repeat:1})
 let tlBox2 = gsap.timeline({paused:true, repeat:1})
+let tlBox3 = gsap.timeline({paused:true, repeat:1})
 
 tl.to(camera.position, {duration:2})
 tl.to(camera.position, {
@@ -408,32 +477,79 @@ function animate(){
     cta.addEventListener('click',function() {
         tlBox.play()
         tlBox2.play()
+        tlBox3.play()
     });
 
     if(cat){
-        tlBox.to(cat, {
+        // tlBox2.to(camera.position, {
+        //     x: 8,
+        //     y: 4,  
+        //     z: 7, 
+        //     duration: 15,
+        //     onUpdate: function() {
+        //         camera.lookAt( 8,1,4);
+        //     }
+        // })
+        tlBox2.to(cat.rotation, {
+            duration:1,
+            y: 1.5,
+        })
+        .to(cat, {
             duration: 1.3,
             onUpdate: function() {
                 catMixerBIdle.stopAllAction()
-                catMixerBtoA.update(clock.getDelta())    
+                catMixerBtoA.update(clock.getDelta())
             }
         })
-        
-        tlBox.to(
+        .to(
             cat.position, {
             duration: 3,
-            x: 3,
+            x: 2.8,
             z: 4.3,
             onUpdate: function() {
                 catMixerWalk.update(clock.getDelta())    
             }
         })
-        tlBox2.to(cat.rotation, {
-            duration:5,
-            y: 1.5,
+        .to(
+            cat.position, {
+            duration: .3,
+            x: 3,
+            y:2,
+            onUpdate: function() {
+                catMixerWalk.stopAllAction()
+                catMixerJumpS.update(clock.getDelta())    
+            }
+        })
+        .to(
+            cat.position, {
+            duration: .3,
+            y:2.2,
+            x: 4.3,
+            onUpdate: function() {
+                catMixerJumpL.update(clock.getDelta())    
+            }
+        })
+        .to(
+            cat.position, {
+            duration: .9667,
+            y:1.4,
+            x: 4.5,
+            onUpdate: function() {
+                catMixerJumpE.update(clock.getDelta())    
+            }
+        })
+        .to(
+            cat.position, {
+            duration: Infinity,
+            onUpdate: function() {
+                catMixerJumpS.stopAllAction()    
+                catMixerJumpL.stopAllAction()    
+                catMixerJumpE.stopAllAction()    
+                catMixerAIdle.update(clock.getDelta())    
+            }
         })
     }
-    
+
     renderer.render(scene, camera);
 }
 
