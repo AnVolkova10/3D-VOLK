@@ -1,24 +1,26 @@
 import './style.css'
 import * as THREE from 'three';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import * as dat from 'dat.gui';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { gsap } from "gsap";
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-// import { throttle } from 'throttle-debounce';
 
 
 // //////////////////////// LOADERS
 const loader = new THREE.TextureLoader()
+const gltfloader = new GLTFLoader();
+
 const texture = loader.load('/textures/wireframe.png')
 const height = loader.load('/textures/height.png')
 const alpha = loader.load('/textures/alpha.jpg')
 
-const gltfloader = new GLTFLoader();
-
 const canvas = document.querySelector('canvas.webgl')
-
 const cta = document.querySelector('.cta')
+const sections = document.querySelectorAll('.section')
+
+const scene = new THREE.Scene();
+const gui = new dat.GUI();
 
 window.onbeforeunload = function () {
     window.scrollTo(0, 0);
@@ -33,9 +35,6 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
-
-// ////////////////////// SCENE
-const scene = new THREE.Scene();
 
 // ///////////////////// CAMERA
 const camera = new THREE.PerspectiveCamera(
@@ -131,7 +130,6 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     actionJumpE.timeScale = 1;
     actionJumpE.setLoop(THREE.LoopOnce, 1);
     actionJumpE.play()
-
     
     catMixerWash = new THREE.AnimationMixer(cat)
     const clipWash = THREE.AnimationClip.findByName(clips, 'B_wash')
@@ -141,16 +139,12 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     catMixerWash2 = new THREE.AnimationMixer(cat)
     const clipWash2 = THREE.AnimationClip.findByName(clips, 'B_wash_b')
     const actionWash2 = catMixerWash2.clipAction(clipWash2)
-    actionWash2.play()
-
-    
+    actionWash2.play()  
     
     catMixerPicks = new THREE.AnimationMixer(cat)
     const clipPicks = THREE.AnimationClip.findByName(clips, 'B_picks')
     const actionPicks = catMixerPicks.clipAction(clipPicks)
-    actionPicks.play()
-
-    
+    actionPicks.play()   
 
     catMixerWalk = new THREE.AnimationMixer(cat)
     const clipWalk = THREE.AnimationClip.findByName(clips, 'A_walk')
@@ -189,7 +183,6 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     cat.position.y= 1.1
     cat.position.z= 4
     cat.rotation.y = 0.75 * Math.PI
-
     
     cat.traverse((object)=> {
     if (object.isMesh)
@@ -199,6 +192,10 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     gsap.from(cat.position, {
         duration: 1,
         ease: 'expo',
+        onUpdate: function() {
+            cta.style.opacity = '0';
+            document.querySelector('.description').style.opacity = '0';
+        }
     })
     gsap.from('h1', {
         yPercent: 100,
@@ -211,17 +208,11 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
         scrollTrigger: {
             trigger: sections[2],
         },
-    })
-    gsap.to(cat, {
-        scrollTrigger: {
-            trigger: sections[2],
-        },
         onUpdate: function() {
             cta.style.opacity = '100%';
             document.querySelector('.description').style.opacity = '100%';
         }
     })
-
 
     const catGUI = gui.addFolder('Cat');
     catGUI.add(cat, 'visible')
@@ -235,22 +226,11 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     console.error( error );
 } );
 
-// let idleCat = throttle(5000, function () {
-//     if (cat) {
-//     const idleArray =[
-//         catMixerWash.update(clock.getDelta()) ,
-//         catMixerWash2.update(clock.getDelta()) ,
-//         catMixerPicks.update(clock.getDelta()) 
-//     ]
-//     return idleArray[Math.floor(Math.random() * 3)];} 
-// });
-
 // TOTEM
 let totem;
 gltfloader.load( 'objects/totem/scene.gltf', function ( gltf ) {
    scene.add( gltf.scene );
-   totem = gltf.scene;
-   
+   totem = gltf.scene; 
 
    totem.scale.set(2.5,2.5,2.5)
    totem.position.x = 3
@@ -263,47 +243,13 @@ gltfloader.load( 'objects/totem/scene.gltf', function ( gltf ) {
         object.castShadow = true
     })
 
-}, undefined, function ( error ) {
-    console.error( error );
-} );
-
-// MARADONA
-let maradona;
-gltfloader.load( 'objects/maradona/scene.gltf', function ( gltf ) {
-   scene.add( gltf.scene );
-   maradona = gltf.scene;
-
-   maradona.scale.set(1,1,1)
-   maradona.position.x =2.5
-   maradona.position.y =-1.8
-   maradona.position.z =-4.8
-   
-   maradona.traverse((object)=> {
-    if (object.isMesh)
-        object.castShadow = true
-    })
-
-}, undefined, function ( error ) {
-    console.error( error );
-} );
-
-// BOX
-let box;
-gltfloader.load( 'objects/box/scene.gltf', function ( gltf ) {
-   scene.add( gltf.scene );
-   box = gltf.scene;
-   
-
-   box.scale.set(.008,.008,.008)
-   box.position.x = 8
-   box.position.y = 0.2
-   box.position.z = -12
-   box.rotation.y = -0.5 * Math.PI
-   
-   box.traverse((object)=> {
-    if (object.isMesh)
-        object.castShadow = true
-    })
+    const totemGUI = gui.addFolder('Totem');
+    totemGUI.add(totem, 'visible')
+    totemGUI.add(totem.position, 'x').min(-13).max(13).step(0.00001)
+    totemGUI.add(totem.position, 'y').min(-13).max(13).step(0.00001)
+    totemGUI.add(totem.position, 'z').min(-13).max(13).step(0.00001)
+    totemGUI.add(totem.rotation, 'x').min(-13).max(13).step(0.00001)
+    totemGUI.add(totem.rotation, 'y').min(-13).max(13).step(0.00001)
 
 }, undefined, function ( error ) {
     console.error( error );
@@ -313,7 +259,7 @@ gltfloader.load( 'objects/box/scene.gltf', function ( gltf ) {
 let cardbox;
 gltfloader.load( 'objects/cardbox/scene.gltf', function ( gltf ) {
    scene.add( gltf.scene );
-   cardbox = gltf.scene;
+   cardbox = gltf.scene; 
    
    cardbox.position.x = 8
    cardbox.position.y = 1
@@ -325,37 +271,47 @@ gltfloader.load( 'objects/cardbox/scene.gltf', function ( gltf ) {
         object.castShadow = true
     })
 
+    const cardboxGUI = gui.addFolder('Cardbox');
+    cardboxGUI.add(cardbox, 'visible')
+    cardboxGUI.add(cardbox.position, 'x').min(-13).max(13).step(0.00001)
+    cardboxGUI.add(cardbox.position, 'y').min(-13).max(13).step(0.00001)
+    cardboxGUI.add(cardbox.position, 'z').min(-13).max(13).step(0.00001)
+    cardboxGUI.add(cardbox.rotation, 'x').min(-13).max(13).step(0.00001)
+    cardboxGUI.add(cardbox.rotation, 'y').min(-13).max(13).step(0.00001)
+
 }, undefined, function ( error ) {
     console.error( error );
 } );
 
 // ////////////////// LIGHTS
+
 // Ambient Light
 const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
-// Directional Light
-const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
-scene.add(directionalLight);
-directionalLight.position.set(-30, 50, 0);
-directionalLight.castShadow = true;
-directionalLight.shadow.camera.botom = -20
-directionalLight.shadow.camera.top = 20
+// Spot Light - Main
+const spotLight = new THREE.SpotLight(0xFFFFFF, 0.8,300);
+scene.add(spotLight);
+spotLight.position.set(24, 23, -48);
+spotLight.castShadow = true;
+spotLight.angle = 0.2;
 
-const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+// Spot Light - Box
+const spotLightBox = new THREE.SpotLight(0xFFFFFF, 0,300);
+scene.add(spotLightBox);
+scene.add( spotLightBox.target );
+spotLightBox.position.set(8, 10, 4);
+spotLightBox.castShadow = true;
+spotLightBox.target.position.set(8,1,4);
+spotLightBox.angle = -0.31;
+spotLightBox.penumbra = 0.3;
+
+const dLightHelper = new THREE.DirectionalLightHelper(spotLight, 5);
 scene.add(dLightHelper);
-
-//const dLightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
-//scene.add(dLightShadowHelper);
-
-// const spotLight = new THREE.SpotLight(0xFFFFFF);
-// scene.add(spotLight);
-// spotLight.position.set(-10, 10, 0);
-// spotLight.castShadow = true;
-// spotLight.angle = 0.2;
-
-// const sLightHelper = new THREE.SpotLightHelper(spotLight);
-// scene.add(sLightHelper);
+const dLightBoxHelper = new THREE.DirectionalLightHelper(spotLightBox, 5);
+scene.add(dLightBoxHelper);
+const dLightShadowHelper = new THREE.CameraHelper(spotLight.shadow.camera);
+scene.add(dLightShadowHelper);
 
 // ////////////////// FOG
 // scene.fog = new THREE.Fog(0XFFFFFF, 0, 200)
@@ -374,26 +330,42 @@ const skybox = skyboxLoader.load([
     scene.background = skybox;
     
 // ///////////////// GUI
-const gui = new dat.GUI();
 
-const options = {
+const GUIOptions = {
     planeColor: '#ffffff',
     wireframe: false
 }
 
-gui.addColor(options, 'planeColor').onChange(function(e){
+gui.addColor(GUIOptions, 'planeColor').onChange(function(e){
     plane.material.color.set(e)
 } )
 
-gui.add(options, 'wireframe').onChange(function(e){
+gui.add(GUIOptions, 'wireframe').onChange(function(e){
     plane.material.wireframe = e
 } )
 
-// CameraGUI
+// Camera GUI
 const cameraGUI = gui.addFolder('Camera');
 cameraGUI.add(camera.position, 'x').min(-10).max(10).step(0.00001)
 cameraGUI.add(camera.position, 'y').min(-10).max(50).step(0.001)
 cameraGUI.add(camera.position, 'z').min(-10).max(10).step(0.00001)
+
+// Lights GUI
+const lightGUI = gui.addFolder('Main Light');
+lightGUI.add(spotLight, 'visible')
+lightGUI.add(spotLight.position, 'y').min(-130).max(130).step(0.001)
+lightGUI.add(spotLight.position, 'x').min(-160).max(100).step(0.001)
+lightGUI.add(spotLight.position, 'z').min(-130).max(130).step(0.001)
+lightGUI.add(spotLight, 'intensity').min(0).max(10).step(0.01)
+
+const lightBoxGUI = gui.addFolder('Box Light');
+lightBoxGUI.add(spotLightBox, 'visible')
+lightBoxGUI.add(spotLightBox.position, 'y').min(-130).max(130).step(0.001)
+lightBoxGUI.add(spotLightBox.position, 'x').min(-160).max(100).step(0.001)
+lightBoxGUI.add(spotLightBox.position, 'z').min(-130).max(130).step(0.001)
+lightBoxGUI.add(spotLightBox, 'intensity').min(0).max(10).step(0.01)
+lightBoxGUI.add(spotLightBox, 'angle').min(-10).max(10).step(0.01)
+lightBoxGUI.add(spotLightBox, 'penumbra').min(-10).max(10).step(0.01)
 
 
 // ////////////////// RAYCASTER
@@ -418,6 +390,12 @@ let tlBox = gsap.timeline({paused:true, repeat:1})
 let tlBox2 = gsap.timeline({paused:true, repeat:1})
 let tlBox3 = gsap.timeline({paused:true, repeat:1})
 
+gsap.registerPlugin(ScrollTrigger)
+   ScrollTrigger.defaults({
+   scrub: 2,
+   ease: 'none',
+})
+
 tl.to(camera.position, {duration:2})
 tl.to(camera.position, {
     y: 8,  
@@ -428,18 +406,12 @@ tl.to(camera.position, {
 	}
 })
 
-gsap.registerPlugin(ScrollTrigger)
-   ScrollTrigger.defaults({
-   scrub: 2,
-   ease: 'none',
-})
-
-const sections = document.querySelectorAll('.section')
 
 // ///////////////// ANIMATE
 const clock = new THREE.Clock()
 
 function animate(){
+    
     // Raycasting
     rayCaster.setFromCamera(mousePosition,camera)
     const intersects = rayCaster.intersectObjects(objs)
@@ -449,7 +421,6 @@ function animate(){
         if (intersect.object.id === genoshaLogoId)
         intersect.object.scale.set(1.1,1.1)
     }
-
     // mouse out
     for (const object of objs) {
         if (!intersects.find(intersect=> intersect.object === object) && object.id === genoshaLogoId) {
@@ -466,7 +437,7 @@ function animate(){
                 catMixerAtoB.update(clock.getDelta())    
             }
         })
-        tl.to(cat, {
+        .to(cat, {
             duration: Infinity,
             onUpdate: function() {
                 catMixerBIdle.update(clock.getDelta())    
@@ -475,25 +446,14 @@ function animate(){
     }
     
     cta.addEventListener('click',function() {
+        spotLightBox.intensity = 1
         tlBox.play()
         tlBox2.play()
         tlBox3.play()
     });
 
     if(cat){
-        // tlBox2.to(camera.position, {
-        //     x: 8,
-        //     y: 4,  
-        //     z: 7, 
-        //     duration: 15,
-        //     onUpdate: function() {
-        //         camera.lookAt( 8,1,4);
-        //     }
-        // })
-        tlBox2.to(cat.rotation, {
-            duration:1,
-            y: 1.5,
-        })
+        tlBox2
         .to(cat, {
             duration: 1.3,
             onUpdate: function() {
@@ -507,9 +467,13 @@ function animate(){
             x: 2.8,
             z: 4.3,
             onUpdate: function() {
-                catMixerWalk.update(clock.getDelta())    
+                catMixerWalk.update(clock.getDelta())        
             }
         })
+        .to(cat.rotation, {
+            duration:1.8,
+            y: 1.5,
+        }, "<")
         .to(
             cat.position, {
             duration: .3,
@@ -517,7 +481,8 @@ function animate(){
             y:2,
             onUpdate: function() {
                 catMixerWalk.stopAllAction()
-                catMixerJumpS.update(clock.getDelta())    
+                catMixerJumpS.update(clock.getDelta())
+                
             }
         })
         .to(
@@ -526,7 +491,8 @@ function animate(){
             y:2.2,
             x: 4.3,
             onUpdate: function() {
-                catMixerJumpL.update(clock.getDelta())    
+                catMixerJumpL.update(clock.getDelta())
+                cardbox.scale.set(1.2,1.2,1.2)    
             }
         })
         .to(
@@ -535,7 +501,9 @@ function animate(){
             y:1.4,
             x: 4.5,
             onUpdate: function() {
-                catMixerJumpE.update(clock.getDelta())    
+                catMixerJumpE.update(clock.getDelta()) 
+                cardbox.scale.set(1.9,1.9,1.9)
+                spotLightBox.angle = -0.1
             }
         })
         .to(
