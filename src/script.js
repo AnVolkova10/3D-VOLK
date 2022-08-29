@@ -5,6 +5,8 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { gsap } from "gsap";
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import * as CANNON from 'cannon-es'
+import { Vec3 } from 'cannon-es';
 
 
 // //////////////////////// LOADERS
@@ -14,6 +16,7 @@ const gltfloader = new GLTFLoader();
 const texture = loader.load('/textures/wireframe.png')
 const height = loader.load('/textures/height.png')
 const alpha = loader.load('/textures/alpha.jpg')
+const o = loader.load('/textures/o.png')
 
 const canvas = document.querySelector('canvas.webgl')
 const cta = document.querySelector('.cta')
@@ -47,9 +50,8 @@ camera.position.set(0, 15, 0);
 
 // //////////////////// CONTROLS
 const orbit = new OrbitControls(camera, canvas);
-
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+// const axesHelper = new THREE.AxesHelper(5);
+// scene.add(axesHelper);
 orbit.update();
 
 // /////////////////// OBJECTS
@@ -367,22 +369,90 @@ lightBoxGUI.add(spotLightBox, 'intensity').min(0).max(10).step(0.01)
 lightBoxGUI.add(spotLightBox, 'angle').min(-10).max(10).step(0.01)
 lightBoxGUI.add(spotLightBox, 'penumbra').min(-10).max(10).step(0.01)
 
+// /////////////////// CANNON
+const world = new CANNON.World({gravity: new CANNON.Vec3(0, -9.81,0)})
+const planeBody = new CANNON.Body({
+    type: CANNON.Body.STATIC,
+    shape: new CANNON.Box(new CANNON.Vec3(25,35,1))
+})
+planeBody.quaternion.setFromEuler(-Math.PI/2,0,0)
+world.addBody(planeBody)
 
 // ////////////////// RAYCASTER
 const mousePosition = new THREE.Vector2();
+const rayCaster = new THREE.Raycaster();
+
+// Create object with click
+const intersectionPoint = new THREE.Vector3()
+const planeNormal = new THREE.Vector3()
+const planeClick = new THREE.Plane()
 
 window.addEventListener('mousemove', function(e) {
     mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
     mousePosition.y = - (e.clientY / window.innerHeight) * 2 + 1;
+
+    //obj w/click
+    planeNormal.copy(camera.position).normalize()
+    planeClick.setFromNormalAndCoplanarPoint(planeNormal, scene.position)
+    rayCaster.setFromCamera(mousePosition,camera)
+    rayCaster.ray.intersectPlane(planeClick, intersectionPoint)
+
 });
 
-const rayCaster = new THREE.Raycaster();
+const maradonaMeshes = []
+const maradonaBodies = []
+
+window.addEventListener('click', function(e){
+    const cylinderGeo = new THREE.CylinderGeometry(0.4,0.4,0.1,64)
+    const cylinderMat = new THREE.MeshStandardMaterial({
+        map: o,
+        transparent: true,
+    })
+
+    const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat)
+    scene.add(cylinder)
+    cylinder.rotation.x = -0.5 * Math.PI
+    cylinder.position.copy(intersectionPoint)
+
+    // MARADONA
+    const maradonaBodyShape = new CANNON.Box(new Vec3(0.5,0.5,0.5))
+    const maradonaBody = new  CANNON.Body({
+        mass: 0.3,
+        shape: maradonaBodyShape,
+        position: new CANNON.Vec3(intersectionPoint.x, intersectionPoint.y, intersectionPoint.z)
+    })
+    world.addBody(maradonaBody)
+
+    let maradona;
+    gltfloader.load( 'objects/maradona/scene.gltf', function ( gltf ) {
+    scene.add( gltf.scene );
+    maradona = gltf.scene;
+    maradona.scale.set(1,1,1)
+    
+    console.log(maradona.scale.x);
+    console.log(maradona.scale.y);
+    console.log(maradona.scale.z);
+    
+    maradonaMeshes.push(maradona)
+    maradonaBodies.push(maradonaBody)
+
+    maradona.traverse((object)=> {
+        if (object.isMesh)
+            object.castShadow = true
+        })
+
+    }, undefined, function ( error ) {
+        console.error( error );
+    } );
+})
+
 
 let objs = []
 scene.traverse((object)=> {
     if (object.isMesh)
         objs.push(object)
 })
+
 
 // ////////////////////// GSAP
 let tl = gsap.timeline()
@@ -409,9 +479,19 @@ tl.to(camera.position, {
 
 // ///////////////// ANIMATE
 const clock = new THREE.Clock()
+const timestep = 1/60
 
 function animate(){
-    
+    // Gravity
+    world.step(timestep)
+    plane.position.copy(planeBody.position)
+    plane.quaternion.copy(planeBody.quaternion)
+
+    for (let i = 0; i < maradonaMeshes.length; i++) {
+        maradonaMeshes[i].position.copy(maradonaBodies[i].position)
+        maradonaMeshes[i].quaternion.copy(maradonaBodies[i].quaternion)   
+    }
+
     // Raycasting
     rayCaster.setFromCamera(mousePosition,camera)
     const intersects = rayCaster.intersectObjects(objs)
