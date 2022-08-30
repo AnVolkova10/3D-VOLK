@@ -17,6 +17,7 @@ const texture = loader.load('/textures/wireframe.png')
 const height = loader.load('/textures/height.png')
 const alpha = loader.load('/textures/alpha.jpg')
 const o = loader.load('/textures/o.png')
+const football = loader.load('/textures/ball.jpg')
 
 const canvas = document.querySelector('canvas.webgl')
 const cta = document.querySelector('.cta')
@@ -32,7 +33,8 @@ window.onbeforeunload = function () {
 // /////////////////////// RENDERER
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
-    alpha: true
+    alpha: true,
+    antialias: true
 })
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -285,6 +287,13 @@ gltfloader.load( 'objects/cardbox/scene.gltf', function ( gltf ) {
     console.error( error );
 } );
 
+ 
+let objs = []
+scene.traverse((object)=> {
+    if (object.isMesh)
+        objs.push(object)
+})
+
 // ////////////////// LIGHTS
 
 // Ambient Light
@@ -307,6 +316,8 @@ spotLightBox.castShadow = true;
 spotLightBox.target.position.set(8,1,4);
 spotLightBox.angle = -0.31;
 spotLightBox.penumbra = 0.3;
+// spotLightBox.shadow.mapSize.width = 1024;
+// spotLightBox.shadow.mapSize.height = 1024;
 
 const dLightHelper = new THREE.DirectionalLightHelper(spotLight, 5);
 scene.add(dLightHelper);
@@ -371,11 +382,15 @@ lightBoxGUI.add(spotLightBox, 'penumbra').min(-10).max(10).step(0.01)
 
 // /////////////////// CANNON
 const world = new CANNON.World({gravity: new CANNON.Vec3(0, -9.81,0)})
+
+const planePhysMat = new CANNON.Material()
 const planeBody = new CANNON.Body({
     type: CANNON.Body.STATIC,
-    shape: new CANNON.Box(new CANNON.Vec3(25,35,1))
+    shape: new CANNON.Box(new CANNON.Vec3(25,35,0.1)),
+    material: planePhysMat
 })
-planeBody.quaternion.setFromEuler(-Math.PI/2,0,0)
+
+planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(planeBody)
 
 // ////////////////// RAYCASTER
@@ -399,58 +414,51 @@ window.addEventListener('mousemove', function(e) {
 
 });
 
-const maradonaMeshes = []
-const maradonaBodies = []
+// CLICK ACTION
+const ballMeshes = []
+const ballBodies = []
 
 window.addEventListener('click', function(e){
+    // Genosha O
     const cylinderGeo = new THREE.CylinderGeometry(0.4,0.4,0.1,64)
     const cylinderMat = new THREE.MeshStandardMaterial({
         map: o,
         transparent: true,
     })
-
     const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat)
     scene.add(cylinder)
     cylinder.rotation.x = -0.5 * Math.PI
     cylinder.position.copy(intersectionPoint)
-
-    // MARADONA
-    const maradonaBodyShape = new CANNON.Box(new Vec3(0.5,0.5,0.5))
-    const maradonaBody = new  CANNON.Body({
-        mass: 0.3,
-        shape: maradonaBodyShape,
-        position: new CANNON.Vec3(intersectionPoint.x, intersectionPoint.y, intersectionPoint.z)
+    
+    // Football
+    const ballGeo = new THREE.SphereGeometry(0.425,30,30)
+    const ballMat = new THREE.MeshStandardMaterial({
+        map: football,
     })
-    world.addBody(maradonaBody)
-
-    let maradona;
-    gltfloader.load( 'objects/maradona/scene.gltf', function ( gltf ) {
-    scene.add( gltf.scene );
-    maradona = gltf.scene;
-    maradona.scale.set(1,1,1)
+    const ball = new THREE.Mesh(ballGeo, ballMat)
+    ball.castShadow = true
+    scene.add(ball)
     
-    console.log(maradona.scale.x);
-    console.log(maradona.scale.y);
-    console.log(maradona.scale.z);
+    const ballPhysMat = new CANNON.Material()
+    const ballBody = new CANNON.Body({
+        mass: 1,
+        shape: new CANNON.Sphere(0.425),
+        position: new CANNON.Vec3(intersectionPoint.x, intersectionPoint.y, intersectionPoint.z),
+        material: ballPhysMat
+    })
+    ballBody.linearDamping = 0.21
+    world.addBody(ballBody)
+
+    const planeBallContactMat = new CANNON.ContactMaterial(
+        planePhysMat,
+        ballPhysMat,
+        {restitution: 0.6}
+        
+    )
     
-    maradonaMeshes.push(maradona)
-    maradonaBodies.push(maradonaBody)
-
-    maradona.traverse((object)=> {
-        if (object.isMesh)
-            object.castShadow = true
-        })
-
-    }, undefined, function ( error ) {
-        console.error( error );
-    } );
-})
-
-
-let objs = []
-scene.traverse((object)=> {
-    if (object.isMesh)
-        objs.push(object)
+    world.addContactMaterial(planeBallContactMat)
+    ballMeshes.push(ball)
+    ballBodies.push(ballBody)
 })
 
 
@@ -484,12 +492,12 @@ const timestep = 1/60
 function animate(){
     // Gravity
     world.step(timestep)
-    plane.position.copy(planeBody.position)
-    plane.quaternion.copy(planeBody.quaternion)
+    planeBody.position.copy(plane.position)
+    planeBody.quaternion.copy(plane.quaternion)
 
-    for (let i = 0; i < maradonaMeshes.length; i++) {
-        maradonaMeshes[i].position.copy(maradonaBodies[i].position)
-        maradonaMeshes[i].quaternion.copy(maradonaBodies[i].quaternion)   
+    for (let i = 0; i < ballMeshes.length; i++) {
+        ballMeshes[i].position.copy(ballBodies[i].position)
+        ballMeshes[i].quaternion.copy(ballBodies[i].quaternion)   
     }
 
     // Raycasting
