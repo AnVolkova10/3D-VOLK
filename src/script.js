@@ -1,12 +1,12 @@
 import './style.css'
 import * as THREE from 'three';
-import * as dat from 'dat.gui';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { gsap } from "gsap";
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import * as CANNON from 'cannon-es'
 import { Vec3 } from 'cannon-es';
+import * as dat from 'dat.gui';
 
 
 // //////////////////////// LOADERS
@@ -24,7 +24,8 @@ const cta = document.querySelector('.cta')
 const sections = document.querySelectorAll('.section')
 
 const scene = new THREE.Scene();
-const gui = new dat.GUI();
+
+
 
 window.onbeforeunload = function () {
     window.scrollTo(0, 0);
@@ -41,19 +42,21 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
 
+
 // ///////////////////// CAMERA
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
     1000
-);
-camera.position.set(0, 15, 0);
-
-// //////////////////// CONTROLS
+    );
+    camera.position.set(0, 15, 0);
+    
+    // //////////////////// CONTROLS
+const gui = new dat.GUI();
 const orbit = new OrbitControls(camera, canvas);
-// const axesHelper = new THREE.AxesHelper(5);
-// scene.add(axesHelper);
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
 orbit.update();
 
 // /////////////////// OBJECTS
@@ -86,6 +89,7 @@ genoshaLogo.position.y = 2
 genoshaLogo.position.z = 0
 const genoshaLogoId = genoshaLogo.id
 scene.add(genoshaLogo)
+
 
 // Cat
 let cat;
@@ -186,7 +190,7 @@ gltfloader.load( 'objects/cat/scene.gltf', function ( gltf ) {
     cat.position.x= -7
     cat.position.y= 1.1
     cat.position.z= 4
-    cat.rotation.y = 0.75 * Math.PI
+    cat.rotation.y = 2.1
     
     cat.traverse((object)=> {
     if (object.isMesh)
@@ -452,7 +456,8 @@ window.addEventListener('click', function(e){
     const planeBallContactMat = new CANNON.ContactMaterial(
         planePhysMat,
         ballPhysMat,
-        {restitution: 0.6}
+        {restitution: 0.6,
+         friction: 0.6}
         
     )
     
@@ -555,18 +560,28 @@ function animate(){
             x: 2.8,
             z: 4.3,
             onUpdate: function() {
-                catMixerWalk.update(clock.getDelta())        
+                catMixerBtoA.stopAllAction()
+                catMixerWalk.update(0.015)        
             }
         })
+        .to(camera.position, {
+            x: 0,
+            y: 8,  
+            z: 0, 
+            duration: 3,
+            onUpdate: function() {
+                camera.lookAt( 8,1,4 );
+            }
+        }, "<")
         .to(cat.rotation, {
-            duration:1.8,
+            duration:3,
             y: 1.5,
         }, "<")
         .to(
             cat.position, {
             duration: .3,
             x: 3,
-            y:2,
+            y:2.5,
             onUpdate: function() {
                 catMixerWalk.stopAllAction()
                 catMixerJumpS.update(clock.getDelta())
@@ -576,24 +591,43 @@ function animate(){
         .to(
             cat.position, {
             duration: .3,
-            y:2.2,
-            x: 4.3,
+            y:2,
+            x: 5,
             onUpdate: function() {
                 catMixerJumpL.update(clock.getDelta())
-                cardbox.scale.set(1.2,1.2,1.2)    
+                
             }
         })
         .to(
+            cardbox.scale, {
+            x: 1.2,
+            y:1.2,
+            z:1.2,
+        },"<")
+        .to(
             cat.position, {
-            duration: .9667,
-            y:1.4,
-            x: 4.5,
+            duration: .3,
+            y:1.2,
+            x: 6.3,
             onUpdate: function() {
                 catMixerJumpE.update(clock.getDelta()) 
-                cardbox.scale.set(1.9,1.9,1.9)
                 spotLightBox.angle = -0.1
             }
         })
+        .to(
+            cardbox.scale, {
+            x: 1.9,
+            y:1.9,
+            z:1.9,
+        },"<")
+        .to(
+            cardbox.position, {
+            y:1.4,
+        },"<")
+        .to(
+            cardbox.rotation, {
+            y:-0.59,
+        },"<")
         .to(
             cat.position, {
             duration: Infinity,
